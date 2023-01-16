@@ -1,0 +1,44 @@
+version: '3'
+services:
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=mysql://db_user:db_password@db:3306/db_name
+      - ACTIVEMQ_URL=tcp://activemq:61616
+    depends_on:
+      - db
+      - activemq
+
+  db:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=db_name
+      - MYSQL_USER=db_user
+      - MYSQL_PASSWORD=db_password
+
+  activemq:
+    image: rmohr/activemq:5.15.9-alpine
+    environment:
+      - ACTIVEMQ_ADMIN_LOGIN=admin
+      - ACTIVEMQ_ADMIN_PASSWORD=admin
+    ports:
+      - "8161:8161"
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  api-gateway:
+    image: kennethreitz/httpbin
+    environment:
+      - VIRTUAL_HOST=api-gateway
+    depends_on:
+      - nginx-proxy
